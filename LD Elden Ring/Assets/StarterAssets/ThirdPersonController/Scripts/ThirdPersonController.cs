@@ -20,6 +20,9 @@ namespace StarterAssets
 
         [Tooltip("Sprint speed of the character in m/s")]
         public float SprintSpeed = 5.335f;
+        
+        [Tooltip("Climbing speed of the character in m/s")]
+        public float ClimbingSpeed = 5.335f;
 
         [Tooltip("How fast the character turns to face movement direction")]
         [Range(0.0f, 0.3f)]
@@ -84,8 +87,10 @@ namespace StarterAssets
         private float _animationBlend;
         private float _targetRotation = 0.0f;
         private float _rotationVelocity;
-        private float _verticalVelocity;
+        public float _verticalVelocity;
         private float _terminalVelocity = 53.0f;
+
+        public bool _isClimbing = false;
 
         // timeout deltatime
         private float _jumpTimeoutDelta;
@@ -210,6 +215,8 @@ namespace StarterAssets
             CinemachineCameraTarget.transform.rotation = Quaternion.Euler(_cinemachineTargetPitch + CameraAngleOverride,
                 _cinemachineTargetYaw, 0.0f);
         }
+        
+        
 
         private void Move()
         {
@@ -247,9 +254,24 @@ namespace StarterAssets
 
             _animationBlend = Mathf.Lerp(_animationBlend, targetSpeed, Time.deltaTime * SpeedChangeRate);
             if (_animationBlend < 0.01f) _animationBlend = 0f;
-
+            
             // normalise input direction
-            Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
+            Vector3 inputDirection;
+            float verticalMovement;
+            
+            if (_isClimbing)
+            {
+                inputDirection = new Vector3(_input.move.x, 0, 0).normalized;
+                verticalMovement = _input.move.y * ClimbingSpeed;
+                _verticalVelocity = 0;
+            }
+            else
+            {
+                inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
+                verticalMovement = _verticalVelocity;
+            }
+            
+            
 
             // note: Vector2's != operator uses approximation so is not floating point error prone, and is cheaper than magnitude
             // if there is a move input rotate player when the player is moving
@@ -269,7 +291,7 @@ namespace StarterAssets
 
             // move the player
             _controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
-                             new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+                             new Vector3(0.0f, verticalMovement, 0.0f) * Time.deltaTime);
 
             // update animator if using character
             if (_hasAnimator)
